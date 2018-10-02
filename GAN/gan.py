@@ -6,8 +6,6 @@ import matplotlib.gridspec as gridspec
 
 import os
 
-import asyncio
-
 class DenseLayer(object):
     def __init__(self, n_in, m_out, name, f=tf.nn.relu):
         W = tf.Variable(tf.random_normal(shape=(n_in, m_out)) * 2 / np.sqrt(n_in), name=name + "_W")
