@@ -30,6 +30,7 @@ class ConvLayer(object):
         self.W = W
         self.b = b
         self.stride = stride
+        self.f = f
 
         self.params = [self.W, self.b]
 
@@ -40,4 +41,16 @@ class ConvLayer(object):
                          padding='SAME') + self.b
 
         return self.f(a)
+
+class MaxPoolingLayer(object):
+    def __init__(self, filter_sz, stride, name):
+        self.filter_sz = filter_sz
+        self.stride = stride
+        self.name = name
+
+    def forward(self, X):
+
+        a = tf.layers.max_pooling2d(X, [self.filter_sz, self.filter_sz], strides=self.stride)
+
+        return a
 
