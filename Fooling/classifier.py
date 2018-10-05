@@ -37,10 +37,9 @@ class Classifier(object):
 
     def fit(self, train_data):
 
-        batch_sz = 64
+        batch_sz = 100
 
         images_batch, labels_batch, images, labels = randomize_and_batch(train_data, batch_sz)
-
         images_batch = tf.cast(images_batch, tf.float32)
 
         X = images_batch
@@ -68,27 +67,23 @@ class Classifier(object):
 
         for epoch in range(epochs):
 
-            self.sess.run([images, labels])
+            self.sess.run([images, labels]) # shuffle TODO: check that works properly
 
             try:
 
                 while not self.coord.should_stop():
-                    self.sess.run([images_batch, labels_batch])
+                    self.sess.run([images_batch, labels_batch]) # compute new batch TODO: check that works properly
                     _, cost_value = self.sess.run((train_op, loss))
                     cost_values.append(cost_value)
                     print(cost_value)
+
             finally:
                 self.coord.request_stop()
                 self.coord.join(self.threads)
 
-
-
-
-train, test = tf.keras.datasets.mnist.load_data()
-#  mnist = input_data.read_data_sets('../data/MNIST_data', one_hot=True)
-
+# mnist = input_data.read_data_sets('../data/MNIST_data', one_hot=True)
 # train = mnist.train
-
+train, test = tf.keras.datasets.mnist.load_data()
 classifier = Classifier()
 classifier.fit(train)
 

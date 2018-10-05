@@ -1,3 +1,5 @@
 
 *.gz
 *.png
+*.iml
+*.xml
