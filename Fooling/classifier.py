@@ -2,6 +2,21 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 from layer import DenseLayer, ConvLayer, MaxPoolingLayer
+import random
+
+def randomize_and_batch(train_data, batch_sz):
+
+    indices = tf.random_shuffle(tf.range(len(train_data[0])))
+    images_data = tf.reshape(tf.convert_to_tensor(train_data[0]), [-1, 28, 28, 1])
+    labels_data = tf.one_hot(tf.convert_to_tensor(train_data[1]), 10)
+
+    images = tf.gather(images_data, indices)
+    labels = tf.gather(labels_data, indices)
+    images_batch, labels_batch = tf.train.batch([images, labels], batch_size=batch_sz, enqueue_many=True,
+                                                shapes=([28, 28, 1], [10, ]))
+
+    return images_batch, labels_batch, images, labels
+
 
 
 class Classifier(object):
@@ -20,16 +35,15 @@ class Classifier(object):
         self.conv_layers = conv_layers
         self.dense_layers = dense_layers
 
+    def fit(self, train_data):
 
-    def fit(self, X_train, Y_train):
+        batch_sz = 64
 
-        self.X_train = X_train
-        self.Y_train = Y_train
+        images_batch, labels_batch, images, labels = randomize_and_batch(train_data, batch_sz)
 
-        X_in = tf.placeholder(tf.float32, shape=[None, 28, 28, 1])
-        labels = tf.placeholder(tf.float32, shape=[None, 10])
+        images_batch = tf.cast(images_batch, tf.float32)
 
-        X = X_in
+        X = images_batch
         for layer in self.conv_layers:
             X = layer.forward(X)
 
@@ -38,31 +52,45 @@ class Classifier(object):
         for layer in self.dense_layers:
             X = layer.forward(X)
 
-        loss = tf.losses.softmax_cross_entropy(onehot_labels=labels, logits=X)
+        loss = tf.losses.softmax_cross_entropy(onehot_labels=labels_batch, logits=X)
 
         train_op = tf.train.AdamOptimizer().minimize(loss)
 
         self.init_op = tf.global_variables_initializer()
         self.sess = tf.InteractiveSession()
         self.sess.run(self.init_op)
+        self.coord = tf.train.Coordinator()
+        self.threads = tf.train.start_queue_runners(sess=self.sess, coord=self.coord)
 
-        batch_sz = 64
         epochs = 10
 
         cost_values = []
 
         for epoch in range(epochs):
-            _, cost_value = self.sess.run((train_op, loss), feed_dict={labels: self.Y_train, X_in: self.X_train})
-            cost_values.append(cost_value)
-            print(cost_value)
+
+            self.sess.run([images, labels])
+
+            try:
+
+                while not self.coord.should_stop():
+                    self.sess.run([images_batch, labels_batch])
+                    _, cost_value = self.sess.run((train_op, loss))
+                    cost_values.append(cost_value)
+                    print(cost_value)
+            finally:
+                self.coord.request_stop()
+                self.coord.join(self.threads)
 
 
-mnist = input_data.read_data_sets('../data/MNIST_data', one_hot=True)
-X_train = mnist.train.images
-X_train = np.reshape(X_train, [-1, 28, 28, 1])
-Y_train = mnist.train.labels
+
+
+train, test = tf.keras.datasets.mnist.load_data()
+#  mnist = input_data.read_data_sets('../data/MNIST_data', one_hot=True)
+
+# train = mnist.train
+
 classifier = Classifier()
-classifier.fit(X_train[:1000, :, :, :], Y_train[:1000, :])
+classifier.fit(train)
 
 
 
