@@ -51,6 +51,14 @@ class Classifier(object):
         for layer in self.dense_layers:
             X = layer.forward(X)
 
+        predicted_classes = tf.nn.softmax(X)
+
+        self.accuracy = tf.reduce_mean(
+            tf.cast(
+                tf.equal(tf.argmax(predicted_classes, 1), tf.argmax(labels_batch, 1))
+                , dtype=tf.float32)
+        )
+
         loss = tf.losses.softmax_cross_entropy(onehot_labels=labels_batch, logits=X)
 
         train_op = tf.train.AdamOptimizer().minimize(loss)
@@ -73,9 +81,9 @@ class Classifier(object):
 
                 while not self.coord.should_stop():
                     self.sess.run([images_batch, labels_batch]) # compute new batch TODO: check that works properly
-                    _, cost_value = self.sess.run((train_op, loss))
+                    _, cost_value, acc = self.sess.run((train_op, loss, self.accuracy))
                     cost_values.append(cost_value)
-                    print(cost_value)
+                    print("cost: " + str(cost_value) + " accuracy: " + str(acc))
 
             finally:
                 self.coord.request_stop()
