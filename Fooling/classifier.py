@@ -75,12 +75,12 @@ class Classifier(object):
 
         for epoch in range(epochs):
 
-            self.sess.run([images, labels]) # shuffle TODO: check that works properly
+            self.sess.run([images, labels]) # shuffle whole data TODO: check that works properly
 
             try:
 
                 while not self.coord.should_stop():
-                    self.sess.run([images_batch, labels_batch]) # compute new batch TODO: check that works properly
+                    self.sess.run([images_batch, labels_batch]) # generate new batch TODO: check that works properly
                     _, cost_value, acc = self.sess.run((train_op, loss, self.accuracy))
                     cost_values.append(cost_value)
                     print("cost: " + str(cost_value) + " accuracy: " + str(acc))
