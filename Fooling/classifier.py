@@ -82,46 +82,40 @@ class Classifier(object):
 
         loss = tf.losses.softmax_cross_entropy(onehot_labels=next_labels, logits=logits)
 
-        train_op = tf.train.AdamOptimizer().minimize(loss)
+        self.global_step = tf.train.get_or_create_global_step()
+
+        train_op = tf.train.AdamOptimizer().minimize(loss, global_step=self.global_step)
 
         cost_values = []
         saver = tf.train.Saver()
 
-        if not os.path.exists('/tmp/'):
-            os.makedirs('/tmp/')
+        if not os.path.exists('tmp/'):
+            os.makedirs('tmp/')
 
-        with tf.train.MonitoredTrainingSession() as sess:
+        with tf.train.MonitoredTrainingSession(checkpoint_dir="tmp/") as sess:
             while not sess.should_stop():
                 sess.run(train_op)
                 acc = sess.run(accuracy)
-                print(acc)
 
-            save_path = saver.save(sess, "/tmp/model.ckpt")
-            print("Model saved in path: %s" % save_path)
-
-        plt.plot(cost_values)
+        #plt.plot(cost_values)
         #plt.show()
 
     def evaluate(self, test_data, batch_sz):
 
         dataset, capacity = make_dataset(test_data, batch_sz)
         dataset = dataset.batch(batch_sz)
-        dataset = dataset.repeat(1)
 
         iterator = dataset.make_one_shot_iterator()
         next_examples, next_labels = iterator.get_next()
 
         logits, predicted_classes = self.forward_classifier(next_examples)
         accuracy = calculate_accuracy(predicted_classes, next_labels)
-        saver = tf.train.Saver()
 
-        with tf.train.MonitoredTrainingSession() as sess:
-
-            saver.restore(sess, "/tmp/model.ckpt")
-            print("Model restored.")
+        with tf.train.MonitoredTrainingSession(checkpoint_dir="tmp/") as sess:
 
             while not sess.should_stop():
                 acc = sess.run(accuracy)
+                print(acc)
 
     def print_weights(self):
 
@@ -146,7 +140,7 @@ train, test = tf.keras.datasets.mnist.load_data()
 classifier = Classifier()
 classifier.fit(train, 100)
 # classifier.print_weights()
-classifier.evaluate(test, 1)
+classifier.evaluate(test, 10000)
 # classifier.print_weights()
 
 

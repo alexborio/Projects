@@ -3,3 +3,16 @@
 *.png
 *.iml
 *.xml
+*.ALEX-PC-DESKTOP
+Fooling/tmp/checkpoint
+Fooling/tmp/graph.pbtxt
+Fooling/tmp/model.ckpt-3000.meta
+Fooling/tmp/model.ckpt-3000.index
+Fooling/tmp/model.ckpt-3000.data-00000-of-00001
+Fooling/tmp/model.ckpt-1500.meta
+Fooling/tmp/model.ckpt-1500.index
+Fooling/tmp/model.ckpt-1500.data-00000-of-00001
+Fooling/tmp/model.ckpt-0.meta
+Fooling/tmp/model.ckpt-0.index
+Fooling/tmp/model.ckpt-0.data-00000-of-00001
+Fooling/tmp/graph.pbtxt.tmpdb706c70fa984b3287744020f178353a
