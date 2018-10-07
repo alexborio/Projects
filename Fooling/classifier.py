@@ -2,20 +2,31 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 from layer import DenseLayer, ConvLayer, MaxPoolingLayer
-import random
+import matplotlib.pyplot as plt
+import os
 
-def randomize_and_batch(train_data, batch_sz):
+def make_dataset(train_data, batch_sz):
 
-    indices = tf.random_shuffle(tf.range(len(train_data[0])))
-    images_data = tf.reshape(tf.convert_to_tensor(train_data[0]), [-1, 28, 28, 1])
-    labels_data = tf.one_hot(tf.convert_to_tensor(train_data[1]), 10)
+    n_data = len(train_data[0])
+    images_data = np.reshape(train_data[0], [-1, 28, 28, 1]).astype(np.float32)
 
-    images = tf.gather(images_data, indices)
-    labels = tf.gather(labels_data, indices)
-    images_batch, labels_batch = tf.train.batch([images, labels], batch_size=batch_sz, enqueue_many=True,
-                                                shapes=([28, 28, 1], [10, ]))
+    nb_classes = 10
+    labels_data = (np.eye(nb_classes)[train_data[1]]).astype(np.float32)
 
-    return images_batch, labels_batch, images, labels
+    dataset = tf.data.Dataset.from_tensor_slices((images_data, labels_data))
+    capacity = n_data // batch_sz
+
+    return dataset, capacity
+
+def calculate_accuracy(predictions, labels):
+
+    accuracy = tf.reduce_mean(
+        tf.cast(
+            tf.equal(tf.argmax(predictions, 1), tf.argmax(labels, 1))
+            , dtype=tf.float32)
+    )
+
+    return accuracy
 
 
 
@@ -35,14 +46,10 @@ class Classifier(object):
         self.conv_layers = conv_layers
         self.dense_layers = dense_layers
 
-    def fit(self, train_data):
+    def forward_classifier(self, input):
 
-        batch_sz = 100
+        X = input
 
-        images_batch, labels_batch, images, labels = randomize_and_batch(train_data, batch_sz)
-        images_batch = tf.cast(images_batch, tf.float32)
-
-        X = images_batch
         for layer in self.conv_layers:
             X = layer.forward(X)
 
@@ -51,49 +58,96 @@ class Classifier(object):
         for layer in self.dense_layers:
             X = layer.forward(X)
 
+        logits = X
         predicted_classes = tf.nn.softmax(X)
 
-        self.accuracy = tf.reduce_mean(
-            tf.cast(
-                tf.equal(tf.argmax(predicted_classes, 1), tf.argmax(labels_batch, 1))
-                , dtype=tf.float32)
-        )
+        return logits, predicted_classes
 
-        loss = tf.losses.softmax_cross_entropy(onehot_labels=labels_batch, logits=X)
+
+
+    def fit(self, train_data, batch_sz):
+
+        dataset, capacity = make_dataset(train_data, batch_sz)
+        dataset = dataset.shuffle(buffer_size=100)
+        dataset = dataset.batch(batch_sz)
+        dataset = dataset.repeat(5)
+
+        iterator = dataset.make_one_shot_iterator()
+
+        next_examples, next_labels = iterator.get_next()
+
+        logits, predicted_classes = self.forward_classifier(next_examples)
+
+        accuracy = calculate_accuracy(predicted_classes, next_labels)
+
+        loss = tf.losses.softmax_cross_entropy(onehot_labels=next_labels, logits=logits)
 
         train_op = tf.train.AdamOptimizer().minimize(loss)
 
-        self.init_op = tf.global_variables_initializer()
-        self.sess = tf.InteractiveSession()
-        self.sess.run(self.init_op)
-        self.coord = tf.train.Coordinator()
-        self.threads = tf.train.start_queue_runners(sess=self.sess, coord=self.coord)
-
-        epochs = 10
-
         cost_values = []
+        saver = tf.train.Saver()
 
-        for epoch in range(epochs):
+        if not os.path.exists('/tmp/'):
+            os.makedirs('/tmp/')
 
-            self.sess.run([images, labels]) # shuffle whole data TODO: check that works properly
+        with tf.train.MonitoredTrainingSession() as sess:
+            while not sess.should_stop():
+                sess.run(train_op)
+                acc = sess.run(accuracy)
+                print(acc)
 
-            try:
+            save_path = saver.save(sess, "/tmp/model.ckpt")
+            print("Model saved in path: %s" % save_path)
 
-                while not self.coord.should_stop():
-                    self.sess.run([images_batch, labels_batch]) # generate new batch TODO: check that works properly
-                    _, cost_value, acc = self.sess.run((train_op, loss, self.accuracy))
-                    cost_values.append(cost_value)
-                    print("cost: " + str(cost_value) + " accuracy: " + str(acc))
+        plt.plot(cost_values)
+        #plt.show()
 
-            finally:
-                self.coord.request_stop()
-                self.coord.join(self.threads)
+    def evaluate(self, test_data, batch_sz):
 
-# mnist = input_data.read_data_sets('../data/MNIST_data', one_hot=True)
-# train = mnist.train
+        dataset, capacity = make_dataset(test_data, batch_sz)
+        dataset = dataset.batch(batch_sz)
+        dataset = dataset.repeat(1)
+
+        iterator = dataset.make_one_shot_iterator()
+        next_examples, next_labels = iterator.get_next()
+
+        logits, predicted_classes = self.forward_classifier(next_examples)
+        accuracy = calculate_accuracy(predicted_classes, next_labels)
+        saver = tf.train.Saver()
+
+        with tf.train.MonitoredTrainingSession() as sess:
+
+            saver.restore(sess, "/tmp/model.ckpt")
+            print("Model restored.")
+
+            while not sess.should_stop():
+                acc = sess.run(accuracy)
+
+    def print_weights(self):
+
+        print("-------------------Printing weights ------------------")
+        with tf.Session() as sess:
+            i = 0
+            for layer in self.conv_layers:
+                params = sess.run(layer.params)
+                print(params)
+                i+=1
+
+            i = 0
+            for layer in self.dense_layers:
+                params = sess.run(layer.params)
+                print(params)
+                i+=1
+
+
+
 train, test = tf.keras.datasets.mnist.load_data()
+
 classifier = Classifier()
-classifier.fit(train)
+classifier.fit(train, 100)
+# classifier.print_weights()
+classifier.evaluate(test, 1)
+# classifier.print_weights()
 
 
 

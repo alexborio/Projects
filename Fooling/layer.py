@@ -47,6 +47,7 @@ class MaxPoolingLayer(object):
         self.filter_sz = filter_sz
         self.stride = stride
         self.name = name
+        self.params = []
 
     def forward(self, X):
 
