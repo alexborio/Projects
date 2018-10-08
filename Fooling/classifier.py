@@ -33,18 +33,22 @@ def calculate_accuracy(predictions, labels):
 class Classifier(object):
     def __init__(self):
 
-        conv_layers = []
-        dense_layers = []
+        self.graph = tf.Graph()
 
-        conv_layers.append(ConvLayer(1, 32, 3, 1, "input_conv_layer"))
-        conv_layers.append(MaxPoolingLayer(2, 2, "first_pooling_layer"))
-        conv_layers.append(ConvLayer(32, 64, 5, 1, "second_conv_layer"))
-        conv_layers.append(MaxPoolingLayer(2, 2, "second_pooling_layer"))
-        dense_layers.append(DenseLayer(7*7*64, 1024, "first_dense_layer") ) #size halved by a max pool layer and then halved again by the second max pool layer
-        dense_layers.append(DenseLayer(1024, 10, "logits_layer", lambda x:x))  #logits layer no nonlinearity
+        with self.graph.as_default():
 
-        self.conv_layers = conv_layers
-        self.dense_layers = dense_layers
+            conv_layers = []
+            dense_layers = []
+
+            conv_layers.append(ConvLayer(1, 32, 3, 1, "input_conv_layer"))
+            conv_layers.append(MaxPoolingLayer(2, 2, "first_pooling_layer"))
+            conv_layers.append(ConvLayer(32, 64, 5, 1, "second_conv_layer"))
+            conv_layers.append(MaxPoolingLayer(2, 2, "second_pooling_layer"))
+            dense_layers.append(DenseLayer(7*7*64, 1024, "first_dense_layer") ) #size halved by a max pool layer and then halved again by the second max pool layer
+            dense_layers.append(DenseLayer(1024, 10, "logits_layer", lambda x:x))  #logits layer no nonlinearity
+
+            self.conv_layers = conv_layers
+            self.dense_layers = dense_layers
 
     def forward_classifier(self, input):
 
@@ -67,55 +71,55 @@ class Classifier(object):
 
     def fit(self, train_data, batch_sz):
 
-        dataset, capacity = make_dataset(train_data, batch_sz)
-        dataset = dataset.shuffle(buffer_size=100)
-        dataset = dataset.batch(batch_sz)
-        dataset = dataset.repeat(5)
+        with self.graph.as_default():
 
-        iterator = dataset.make_one_shot_iterator()
+            dataset, capacity = make_dataset(train_data, batch_sz)
+            dataset = dataset.shuffle(buffer_size=100)
+            dataset = dataset.batch(batch_sz)
+            dataset = dataset.repeat(5)
 
-        next_examples, next_labels = iterator.get_next()
+            iterator = dataset.make_one_shot_iterator()
 
-        logits, predicted_classes = self.forward_classifier(next_examples)
+            next_examples, next_labels = iterator.get_next()
 
-        accuracy = calculate_accuracy(predicted_classes, next_labels)
+            logits, predicted_classes = self.forward_classifier(next_examples)
 
-        loss = tf.losses.softmax_cross_entropy(onehot_labels=next_labels, logits=logits)
+            accuracy = calculate_accuracy(predicted_classes, next_labels)
 
-        self.global_step = tf.train.get_or_create_global_step()
+            loss = tf.losses.softmax_cross_entropy(onehot_labels=next_labels, logits=logits)
 
-        train_op = tf.train.AdamOptimizer().minimize(loss, global_step=self.global_step)
+            self.global_step = tf.train.get_or_create_global_step()
 
-        cost_values = []
-        saver = tf.train.Saver()
+            train_op = tf.train.AdamOptimizer().minimize(loss, global_step=self.global_step)
 
-        if not os.path.exists('tmp/'):
-            os.makedirs('tmp/')
+            if not os.path.exists('tmp/'):
+                os.makedirs('tmp/')
 
-        with tf.train.MonitoredTrainingSession(checkpoint_dir="tmp/") as sess:
-            while not sess.should_stop():
-                sess.run(train_op)
-                acc = sess.run(accuracy)
+            with tf.train.MonitoredTrainingSession() as sess:
+                while not sess.should_stop():
+                    sess.run(train_op)
+                    acc = sess.run(accuracy)
+                    print("Train accuracy: " + str(acc))
 
-        #plt.plot(cost_values)
-        #plt.show()
+            #plt.plot(cost_values)
+            #plt.show()
 
     def evaluate(self, test_data, batch_sz):
 
-        dataset, capacity = make_dataset(test_data, batch_sz)
-        dataset = dataset.batch(batch_sz)
+        with self.graph.as_default():
+            dataset, capacity = make_dataset(test_data, batch_sz)
+            dataset = dataset.batch(batch_sz)
 
-        iterator = dataset.make_one_shot_iterator()
-        next_examples, next_labels = iterator.get_next()
+            iterator = dataset.make_one_shot_iterator()
+            next_examples, next_labels = iterator.get_next()
 
-        logits, predicted_classes = self.forward_classifier(next_examples)
-        accuracy = calculate_accuracy(predicted_classes, next_labels)
+            logits, predicted_classes = self.forward_classifier(next_examples)
+            accuracy = calculate_accuracy(predicted_classes, next_labels)
 
-        with tf.train.MonitoredTrainingSession(checkpoint_dir="tmp/") as sess:
-
-            while not sess.should_stop():
-                acc = sess.run(accuracy)
-                print(acc)
+            with tf.train.MonitoredTrainingSession() as sess:
+                while not sess.should_stop():
+                    acc = sess.run(accuracy)
+                    print("Test accuracy: " + str(acc))
 
     def print_weights(self):
 
