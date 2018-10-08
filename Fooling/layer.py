@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+
 class DenseLayer(object):
     def __init__(self, n_in, m_out, name, f=tf.nn.relu):
         W = tf.Variable(tf.random_normal(shape=(n_in, m_out)) * 2 / np.sqrt(n_in), name=name + "_W")
@@ -9,13 +10,23 @@ class DenseLayer(object):
 
         self.W = W
         self.b = b
+
+        self.Wnp = []
+        self.bnp = []
+
         self.params = [self.W, self.b]
-        self.name = name
 
     def forward(self, X):
+
         a = tf.matmul(X, self.W) + self.b
 
         return self.f(a)
+
+    def set_weights(self, sess):
+
+        with sess:
+            self.Wnp = tf.constant(self.W.eval())
+            self.bnp = tf.constant(self.b.eval())
 
 
 class ConvLayer(object):
@@ -32,6 +43,9 @@ class ConvLayer(object):
         self.stride = stride
         self.f = f
 
+        self.Wnp = []
+        self.bnp = []
+
         self.params = [self.W, self.b]
 
     def forward(self, X):
@@ -42,16 +56,32 @@ class ConvLayer(object):
 
         return self.f(a)
 
+    def set_weights(self, sess):
+
+        with sess:
+            self.Wnp = tf.constant(self.W.eval())
+            self.bnp = tf.constant(self.b.eval)
+
+
 class MaxPoolingLayer(object):
+
     def __init__(self, filter_sz, stride, name):
         self.filter_sz = filter_sz
         self.stride = stride
         self.name = name
         self.params = []
+        self.W = []
+        self.b = []
+        self.Wnp = []
+        self.bnp = []
 
     def forward(self, X):
 
         a = tf.layers.max_pooling2d(X, [self.filter_sz, self.filter_sz], strides=self.stride)
 
         return a
+
+    def set_weights(self, sess):
+
+        pass
 
