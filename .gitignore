@@ -17,3 +17,7 @@ Fooling/tmp/model.ckpt-0.index
 Fooling/tmp/model.ckpt-0.data-00000-of-00001
 Fooling/tmp/graph.pbtxt.tmpdb706c70fa984b3287744020f178353a
 *.pyc
+*.meta
+*.index
+*.data-00000-of-00001
+*.NJL8201
