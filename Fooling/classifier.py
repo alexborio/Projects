@@ -5,6 +5,39 @@ from layer import DenseLayer, ConvLayer, MaxPoolingLayer
 import matplotlib.pyplot as plt
 import os
 
+class _Hook(tf.train.SessionRunHook):
+
+    def __init__(self, params_dict, is_training=False):
+        self.params_dict = params_dict
+        self.assign_ops = [] # list for assignment operations
+        self.assignment_performed = False # indicates wether weights have been loaded
+        self.is_training = is_training
+
+    """Append assignment ops to a graph = load trained weights and biases"""
+    def begin(self):
+        if (len(self.params_dict) > 0):
+            graph = tf.get_default_graph()
+            variables = graph._collections['trainable_variables']
+
+            for variable in variables:
+                    self.assign_ops.append( variable.assign(self.params_dict[variable.name]))
+
+    """Perform assignment operations"""
+    def before_run(self, run_context):
+        if (len(self.assign_ops) > 0 and not self.assignment_performed):
+            for op in self.assign_ops:
+                run_context.session.run(op)
+
+            self.assignment_performed = True
+
+    """Save trained params into a dictionary provided"""
+    def end(self, session):
+        if self.is_training:
+            variables = session.graph._collections['trainable_variables']
+
+            for variable in variables:
+                self.params_dict.update({variable.name: session.run(variable)})
+
 def make_dataset(train_data, batch_sz):
 
     n_data = len(train_data[0])
@@ -33,8 +66,14 @@ def calculate_accuracy(predictions, labels):
 class Classifier(object):
     def __init__(self):
 
+        self.params_dict = {}
         conv_layers = []
         dense_layers = []
+
+        self.hook = _Hook(self.params_dict, is_training=True)
+
+        self.config = tf.ConfigProto()
+        self.config.gpu_options.allow_growth = True
 
         conv_layers.append(ConvLayer(1, 32, 3, 1, "input_conv_layer"))
         conv_layers.append(MaxPoolingLayer(2, 2, "first_pooling_layer"))
@@ -45,6 +84,7 @@ class Classifier(object):
 
         self.conv_layers = conv_layers
         self.dense_layers = dense_layers
+
 
     def forward_classifier(self, input):
 
@@ -59,7 +99,6 @@ class Classifier(object):
             X = layer.forward(X)
 
         logits = X
-
         predicted_classes = tf.nn.softmax(X)
 
         return logits, predicted_classes
@@ -81,23 +120,17 @@ class Classifier(object):
 
         loss = tf.losses.softmax_cross_entropy(onehot_labels=next_labels, logits=logits)
 
-        train_op = tf.train.AdamOptimizer().minimize(loss, global_step=tf.train.get_or_create_global_step())
+        self.global_step = tf.train.get_or_create_global_step()
+
+        train_op = tf.train.AdamOptimizer().minimize(loss, global_step=self.global_step)
 
         if not os.path.exists('tmp/'):
             os.makedirs('tmp/')
 
-        with tf.train.MonitoredTrainingSession() as sess:
+        with tf.train.MonitoredTrainingSession( hooks=[self.hook], config=self.config) as sess:
             while not sess.should_stop():
-                if not sess._closed:
-                    for layer in self.dense_layers:
-                        layer.set_weights(sess)
-
-                    for layer in self.conv_layers:
-                        layer.set_weights(sess)
-
                 sess.run(train_op)
                 acc = sess.run(accuracy)
-
                 print("Train accuracy: " + str(acc))
 
         #plt.plot(cost_values)
@@ -108,47 +141,26 @@ class Classifier(object):
         dataset, capacity = make_dataset(test_data, batch_sz)
         dataset = dataset.batch(batch_sz)
 
+        self.hook.is_training = False
         iterator = dataset.make_one_shot_iterator()
         next_examples, next_labels = iterator.get_next()
 
         logits, predicted_classes = self.forward_classifier(next_examples)
         accuracy = calculate_accuracy(predicted_classes, next_labels)
 
-        with tf.train.MonitoredTrainingSession() as sess:
+        with tf.train.MonitoredTrainingSession(hooks=[self.hook]) as sess:
+
             while not sess.should_stop():
                 acc = sess.run(accuracy)
                 print("Test accuracy: " + str(acc))
 
-    def print_weights(self):
-
-        print("-------------------Printing weights ------------------")
-        with tf.Session() as sess:
-            i = 0
-            for layer in self.conv_layers:
-                params = sess.run(layer.params)
-                print(params)
-                i+=1
-
-            i = 0
-            for layer in self.dense_layers:
-                params = sess.run(layer.params)
-                print(params)
-                i+=1
-
-
 
 train, test = tf.keras.datasets.mnist.load_data()
 
-train_trunc = []
-train_trunc.append(train[0][1:3000, :, :])
-train_trunc.append(train[1][1:3000, ])
-train = train_trunc
-
 classifier = Classifier()
 classifier.fit(train, 100)
-# classifier.print_weights()
-classifier.evaluate(test, 1000)
-# classifier.print_weights()
+classifier.evaluate(test, 10000)
+
 
 
 
