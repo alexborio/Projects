@@ -3,8 +3,8 @@ import numpy as np
 
 class DenseLayer(object):
     def __init__(self, n_in, m_out, name, f=tf.nn.relu):
-        W = tf.Variable(tf.random_normal(shape=(n_in, m_out)) * 2 / np.sqrt(n_in), name=name + "_W")
-        b = tf.Variable(np.zeros(m_out).astype(np.float32), name=name + "_b")
+        W = tf.Variable(tf.random_normal(shape=(n_in, m_out)) * 2 / np.sqrt(n_in), name="W_" + name )
+        b = tf.Variable(np.zeros(m_out).astype(np.float32), name="b_" + name)
         self.f = f
 
         self.W = W
