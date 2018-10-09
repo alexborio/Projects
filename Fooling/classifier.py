@@ -159,9 +159,8 @@ train, test = tf.keras.datasets.mnist.load_data()
 
 classifier = Classifier()
 classifier.fit(train, 100)
-# classifier.print_weights()
 classifier.evaluate(test, 10000)
-# classifier.print_weights()
+
 
 
 
