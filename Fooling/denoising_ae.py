@@ -78,6 +78,9 @@ class DAE(object):
 
     def evaluate(self, test_data, batch_sz):
 
+        self.conv_layers[-2].change_batch_size(batch_sz)
+        self.conv_layers[-1].change_batch_size(batch_sz)
+
         test_data[0] = corrupt_data(test_data[0], corruption_level=0.3)
         dataset, capacity = make_dataset(test_data, batch_sz)
         dataset = dataset.batch(batch_sz)
@@ -109,4 +112,4 @@ test_new.append(test[1])
 
 dae = DAE()
 dae.fit(train_new, 100)
-dae.evaluate(test_new, 100)
+dae.evaluate(test_new, 1)

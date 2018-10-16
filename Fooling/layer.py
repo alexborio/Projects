@@ -72,6 +72,9 @@ class FSConvLayer(object):
         self.f = f
         self.output_shape = output_shape
 
+    def change_batch_size(self, batch_sz):
+        self.output_shape[0] = batch_sz
+
     def forward(self, X):
         a = tf.nn.conv2d_transpose(
             value=X,

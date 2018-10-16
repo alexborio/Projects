@@ -112,7 +112,7 @@ test_new.append(test[1])
 
 classifier = Classifier()
 classifier.fit(train_new, 100)
-classifier.evaluate(test_new, 10000)
+classifier.evaluate(test_new, 100)
 
 
 
