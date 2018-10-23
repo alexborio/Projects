@@ -1,8 +1,11 @@
+import numpy as np
+
 class Player:
     def __init__(self, symbol):
         self.symbol = symbol
         self.state_history = []
-        self.value_function = []
+        self.value_function = {}
+        self.results = ['']*3**9
 
     def update_state_history(self, state):
         self.state_history.append(tuple(state))
@@ -19,8 +22,28 @@ class Player:
             self.value_function.append(0)
 
     def take_action(self, env):
+        pass
 
-        
+    def enumerate_states(self, n_states, result, results):
+
+        if n_states > 0:
+
+            for val in ('x', 'o', '_'):
+                result = [r + val for r in result]
+                self.enumerate_states(n_states - 1, result, results)
+
+        results.append(result)
+        result = ['']
+
+        return results
+
+
+
+
+player = Player('x')
+results = player.enumerate_states(9, ['','',''], [])
+
+print(len(results[0]))
 
 
 
