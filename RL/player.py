@@ -27,6 +27,8 @@ class Player:
             V = self.value_function[enum_state]
 
             V = V + self.alpha*(Vprime - V)
+
+            self.value_function[enum_state] = V
             Vprime = V
 
 
