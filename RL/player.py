@@ -32,11 +32,14 @@ class Player:
             Vprime = V
 
 
-    def take_action(self, env, prob):
+    def take_action(self, env, prob, debug=False):
         state = self.enumerate_state(env.board)
         values = self.value_function[state]
         allowed_moves = env.get_allowed_moves()
         max_value = (values[allowed_moves]).max()
+
+        if debug:
+            print(values)
 
         if np.random.uniform() > prob:
             index = tuple(np.where(values == max_value))

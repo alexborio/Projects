@@ -51,7 +51,7 @@ for i in range(2):
     px.symbol= 'x'
     while not game_ends:
 
-        px.take_action(env, 0.0)
+        px.take_action(env, 0.0, True)
         if env.check_winner(px.symbol):
             game_ends = True
             break
