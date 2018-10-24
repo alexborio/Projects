@@ -8,12 +8,12 @@ class Player:
         self.state_history = []
         self.all_states = []
         self.enumerate_states(9, 9, '', self.all_states)
-        self.init_values = np.random.uniform(0.4, 0.5, size=(3**9,))
-        self.value_function = dict(zip(self.all_states, self.init_values))
-        self.alpha = 0.5
+        self.init_values = np.random.uniform(0.95, 0.1, size=(3**9,))
+        self.value_function = dict(zip(self.all_states, deepcopy(self.init_values)))
+        self.alpha = 0.1
 
     def update_state_history(self, state):
-        self.state_history.append(state)
+        self.state_history.append(deepcopy(state))
 
     def update(self, env):
 
@@ -26,14 +26,15 @@ class Player:
         for state in reversed(self.state_history):
             enum_state = self.enumerate_state(state)
             V = self.value_function[enum_state]
-            V = V + self.alpha*(Vprime - V)
-            self.value_function[enum_state] = V
-            Vprime = V
+            value = V + self.alpha*(Vprime - V)
+            self.value_function[enum_state] = value
+            Vprime = value
 
     def take_action(self, env, prob, debug=False):
 
         allowed_moves = env.get_allowed_moves()
         ln = len(allowed_moves[0])
+        indices = []
 
         values = []
 
@@ -48,6 +49,14 @@ class Player:
                 state = self.enumerate_state(board)
                 value = self.value_function[state]
                 values.append(value)
+                indices.append(index)
+
+            if debug:
+                print("Turn: " + self.symbol)
+                M = np.zeros(shape= (3, 3))
+                M[allowed_moves] = values
+                print(M)
+                print("")
 
             max_index = np.argmax(values)
             index = (allowed_moves[0][max_index], allowed_moves[1][max_index])
