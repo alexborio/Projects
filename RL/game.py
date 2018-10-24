@@ -13,6 +13,12 @@ class Game:
 
         return indices
 
+    def get_state_symbol_indices(self, state, symbol):
+
+        indices = np.where(state.astype(str) == symbol)
+
+        return indices
+
     def get_allowed_moves(self):
 
         return self.get_symbol_indices('_')

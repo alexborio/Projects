@@ -6,20 +6,20 @@ po = player.Player('o')
 
 game_ends = False
 
-for i in range(20000):
+for i in range(10000):
     env = game.Game(3)
     px.state_history = []
     po.state_history = []
     while not game_ends:
 
-        px.take_action(env, 0.1)
+        px.take_action(env, 0.3)
         if env.check_winner(px.symbol):
             game_ends = True
             break
 
         env.draw_board()
 
-        po.take_action(env, 0.1)
+        po.take_action(env, 0.3)
         if env.check_winner(po.symbol):
             game_ends = True
             break

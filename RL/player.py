@@ -6,9 +6,9 @@ class Player:
         self.state_history = []
         self.all_states = []
         self.enumerate_states(9, 9, '', self.all_states)
-        self.init_values = np.random.uniform(1e-6, 1e-5, size=(3**9,3,3))
+        self.init_values = np.random.uniform(1e-7, 1.1e-6, size=(3**9,3,3))
         self.value_function = dict(zip(self.all_states, self.init_values))
-        self.alpha = 0.0001
+        self.alpha = 0.5
 
     def update_state_history(self, state):
         self.state_history.append(state)
@@ -23,6 +23,7 @@ class Player:
 
         Vprime = reward
         for state in reversed(self.state_history):
+            indices = env.get_state_symbol_indices(state, self.symbol)
             enum_state = self.enumerate_state(state)
             V = self.value_function[enum_state]
 
@@ -48,7 +49,7 @@ class Player:
             i = np.random.randint(0, ln)
             index = (allowed_moves[0][i],allowed_moves[1][i])
 
-        index = tuple(np.where(values == max_value))
+        # index = tuple(np.where(values == max_value))
         # print(str(index) + ' ' + self.symbol)
         env.make_move(self.symbol, index)
         self.update_state_history(env.board)
