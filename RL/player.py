@@ -1,4 +1,6 @@
 import numpy as np
+from copy import deepcopy
+
 
 class Player:
     def __init__(self, symbol):
@@ -6,7 +8,7 @@ class Player:
         self.state_history = []
         self.all_states = []
         self.enumerate_states(9, 9, '', self.all_states)
-        self.init_values = np.random.uniform(1e-7, 1.1e-6, size=(3**9,3,3))
+        self.init_values = np.random.uniform(0.4, 0.5, size=(3**9,))
         self.value_function = dict(zip(self.all_states, self.init_values))
         self.alpha = 0.5
 
@@ -15,39 +17,44 @@ class Player:
 
     def update(self, env):
 
-        reward = np.zeros(shape=(3,3))
+        reward = 0
 
         if env.check_winner(self.symbol):
-            indices = env.get_symbol_indices(self.symbol)
-            reward[indices] = 1
+            reward = 1
 
         Vprime = reward
         for state in reversed(self.state_history):
-            indices = env.get_state_symbol_indices(state, self.symbol)
             enum_state = self.enumerate_state(state)
             V = self.value_function[enum_state]
-
             V = V + self.alpha*(Vprime - V)
-
             self.value_function[enum_state] = V
             Vprime = V
 
-
     def take_action(self, env, prob, debug=False):
-        state = self.enumerate_state(env.board)
-        values = self.value_function[state]
+
         allowed_moves = env.get_allowed_moves()
-        max_value = (values[allowed_moves]).max()
+        ln = len(allowed_moves[0])
+
+        values = []
 
         if debug:
             print(values)
 
         if np.random.uniform() > prob:
-            index = tuple(np.where(values == max_value))
+            for i in range(ln):
+                index = (allowed_moves[0][i], allowed_moves[1][i])
+                board = deepcopy(env.board)
+                board[index] = self.symbol
+                state = self.enumerate_state(board)
+                value = self.value_function[state]
+                values.append(value)
+
+            max_index = np.argmax(values)
+            index = (allowed_moves[0][max_index], allowed_moves[1][max_index])
+
         else:
-            ln = len(allowed_moves[0])
-            i = np.random.randint(0, ln)
-            index = (allowed_moves[0][i],allowed_moves[1][i])
+            i = np.random.randint(ln)
+            index = (allowed_moves[0][i], allowed_moves[1][i])
 
         # index = tuple(np.where(values == max_value))
         # print(str(index) + ' ' + self.symbol)

@@ -6,21 +6,21 @@ po = player.Player('o')
 
 game_ends = False
 
-for i in range(10000):
+for i in range(50000):
     env = game.Game(3)
     px.state_history = []
     po.state_history = []
     while not game_ends:
 
         px.take_action(env, 0.3)
-        if env.check_winner(px.symbol):
+        if env.check_winner(px.symbol) or len(env.get_allowed_moves()[0]) == 0:
             game_ends = True
             break
 
         env.draw_board()
 
         po.take_action(env, 0.3)
-        if env.check_winner(po.symbol):
+        if env.check_winner(po.symbol) or len(env.get_allowed_moves()[0]) == 0:
             game_ends = True
             break
 
@@ -39,13 +39,15 @@ for i in range(10000):
     px.update(env)
     po.update(env)
     env = None
+    '''
     px_symbol = px.symbol
     po_symbol = po.symbol
 
     px.symbol = po_symbol
     po.symbol = px_symbol
+    '''
 
-for i in range(2):
+while True:
     env = game.Game(3)
     px.state_history = []
     px.symbol= 'x'
@@ -69,3 +71,4 @@ for i in range(2):
         env.draw_board()
 
     env.draw_board()
+    game_ends = False
