@@ -8,9 +8,9 @@ class Player:
         self.state_history = []
         self.all_states = []
         self.enumerate_states(9, 9, '', self.all_states)
-        self.init_values = np.random.uniform(0.95, 0.1, size=(3**9,))
+        self.init_values = np.random.uniform(0.095, 0.1, size=(3**9,))
         self.value_function = dict(zip(self.all_states, deepcopy(self.init_values)))
-        self.alpha = 0.1
+        self.alpha = 0.3
 
     def update_state_history(self, state):
         self.state_history.append(deepcopy(state))

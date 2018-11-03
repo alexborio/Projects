@@ -6,7 +6,7 @@ po = player.Player('o')
 
 game_ends = False
 
-for i in range(20000):
+for i in range(100000):
     env = game.Game(3)
     px.state_history = []
     po.state_history = []
@@ -51,10 +51,10 @@ while True:
     env = game.Game(3)
     px.state_history = []
     px.symbol= 'x'
-    while not game_ends and len(env.get_allowed_moves()) > 0:
+    while not game_ends or not len(env.get_allowed_moves()) > 0:
 
         px.take_action(env, 0.0, True)
-        if env.check_winner(px.symbol):
+        if env.check_winner(px.symbol) or len(env.get_allowed_moves()) == 0:
             game_ends = True
             break
 

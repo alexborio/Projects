@@ -16,6 +16,7 @@ class Classifier(object):
 
         self.hook = _Hook(self.params_dict, is_training=True)
 
+
         self.config = tf.ConfigProto()
         self.config.gpu_options.allow_growth = True
 
@@ -28,6 +29,12 @@ class Classifier(object):
 
         self.conv_layers = conv_layers
         self.dense_layers = dense_layers
+
+        self.fooling_input = tf.get_variable(name="fooling_number", shape=(1, 28, 28, 1), initializer=tf.glorot_normal_initializer())
+        self.fooling_logits, self.fooling_predicted_classes = self.forward_classifier(self.fooling_input)
+        self.fooling_label = tf.placeholder(dtype=tf.float32, shape=(1, 10))
+        self.fooling_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.fooling_label, logits=self.fooling_logits)
+        self.fooling_train_op = tf.train.AdamOptimizer().minimize(self.fooling_loss, var_list=[self.fooling_input])
 
 
     def forward_classifier(self, input):
@@ -99,6 +106,30 @@ class Classifier(object):
                 print("Test accuracy: " + str(acc))
 
 
+    def fool(self, number):
+
+        fooling_label = np.zeros((1, 10))
+        fooling_label[0][number] = 1
+
+        epochs = 1000
+        images = []
+        self.hook.is_training = True
+
+        with tf.train.MonitoredTrainingSession(hooks=[self.hook], config=self.config) as sess:
+            for epoch in range(epochs):
+                sess.run(self.fooling_train_op, feed_dict={self.fooling_label: fooling_label})
+                pred_class_value = sess.run(self.fooling_input)
+                image = pred_class_value.reshape(28, 28)
+                images.append(image)
+                print(sess.run(self.fooling_predicted_classes))
+
+            plt.imshow(image, cmap='gray')
+            plt.show()
+
+        self.hook.assignment_performed = False
+        self.hook.is_training = False
+
+
 train, test = tf.keras.datasets.mnist.load_data()
 
 train_new = []
@@ -110,10 +141,14 @@ train_new.append(train[1])
 test_new.append(test[0]/255)
 test_new.append(test[1])
 
-classifier = Classifier()
-classifier.fit(train_new, 100)
-classifier.evaluate(test_new, 100)
 
+
+classifier = Classifier()
+
+classifier.fit(train_new, 100)
+classifier.fool(0)
+classifier.fool(7)
+classifier.evaluate(test_new, 100)
 
 
 

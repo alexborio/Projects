@@ -12,6 +12,7 @@ class _Hook(tf.train.SessionRunHook):
         self.assign_ops = [] # list for assignment operations
         self.assignment_performed = False # indicates wether weights have been loaded
         self.is_training = is_training
+        self.train_vars = []
 
     """Append assignment ops to a graph = load trained weights and biases"""
     def begin(self):
@@ -20,6 +21,7 @@ class _Hook(tf.train.SessionRunHook):
             variables = graph._collections['trainable_variables']
 
             for variable in variables:
+                if variable.name in self.params_dict:
                     self.assign_ops.append( variable.assign(self.params_dict[variable.name]))
 
     """Perform assignment operations"""
@@ -29,6 +31,7 @@ class _Hook(tf.train.SessionRunHook):
                 run_context.session.run(op)
 
             self.assignment_performed = True
+
 
     """Save trained params into a dictionary provided"""
     def end(self, session):
