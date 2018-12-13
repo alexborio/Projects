@@ -109,7 +109,7 @@ class Classifier(object):
     def fool(self, number):
 
         fooling_label = np.zeros((1, 10))
-        fooling_label[0][number] = 1
+        fooling_label[0][number] = 0.999
 
         epochs = 1000
         images = []
@@ -147,7 +147,7 @@ classifier = Classifier()
 
 classifier.fit(train_new, 100)
 classifier.fool(0)
-classifier.fool(7)
+classifier.fool(9)
 classifier.evaluate(test_new, 100)
 
 
